@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Add `--spectre` to `build_w32.bat` (1/2)
+
+--- a/build_w32.bat
++++ b/build_w32.bat
+@@ -33,6 +33,7 @@
+ 
+ set MAKE=gnumake
+ set GUILE=Y
++set SPECTRE=N
+ set COMPILER=cl.exe
+ set O=obj
+ set ARCH=x64
+@@ -50,6 +51,7 @@
+ if "%1" == "--verbose" goto SetVerbose
+ if "%1" == "--debug" goto SetDebug
+ if "%1" == "--without-guile" goto NoGuile
++if "%1" == "--spectre" goto SetSpectre
+ if "%1" == "--x86" goto Set32Bit
+ if "%1" == "--arm64" goto SetArm64
+ if "%1" == "gcc" goto SetCC
+@@ -88,6 +90,13 @@
+ shift
+ goto ParseSW
+ 
++:SetSpectre
++set SPECTRE=Y
++set "VSVARSOPTS=-vcvars_spectre_libs=spectre"
++echo - Building with Spectre mitigations
++shift
++goto ParseSW
++
+ :SetCC
+ set COMPILER=gcc
+ set O=o
+@@ -103,6 +112,8 @@
+ goto ParseSW
+ 
+ :DoneSW
++if "%SPECTRE%" == "Y" if not "%COMPILER%" == "cl.exe" goto SpectreNeedsMSVC
++
+ if "%MAINT%" == "Y" echo - Enabling maintainer mode
+ 
+ if "%COMPILER%" == "gcc" goto FindGcc
+@@ -129,6 +140,7 @@
+ 
+ :: No "vswhere" or it can't find a compiler.  Go old-school.
+ :LegacyVS
++if "%SPECTRE%" == "Y" goto SpectreNotSupported
+ set "VSVARS=%VS150COMNTOOLS%\..\..\VC\vcvarsall.bat"
+ call :CheckMSVC
+ if not ERRORLEVEL 1 goto FoundMSVC
+@@ -192,6 +204,10 @@
+ if "%DEBUG%" == "Y" set "OPTS=/Zi /Od /D _DEBUG"
+ if "%DEBUG%" == "Y" set LINKOPTS=/DEBUG
+ if "%MAINT%" == "Y" set "OPTS=%OPTS% /D MAKE_MAINTAINER_MODE"
++if "%SPECTRE%" == "Y" call :CheckSpectreLibs
++if "%SPECTRE%" == "Y" if ERRORLEVEL 1 goto NoSpectreLibs
++if "%SPECTRE%" == "Y" set "OPTS=%OPTS% /Qspectre"
++if "%SPECTRE%" == "Y" if "%ARCH%" == "x64" set "OPTS=%OPTS% /Qspectre-jmp"
+ :: Show the compiler version that we found
+ :: Unfortunately this also shows a "usage" note; I can't find anything better.
+ echo.
+@@ -428,12 +444,33 @@
+ 
+ :CheckMSVC
+ if not exist "%VSVARS%" exit /b 1
+-call "%VSVARS%" %ARCH%
++call "%VSVARS%" %ARCH% %VSVARSOPTS%
+ if ERRORLEVEL 1 exit /b 1
+ call %COMPILER% >nul 2>&1
+ if ERRORLEVEL 1 exit /b 1
+ goto :EOF
+ 
++:CheckSpectreLibs
++echo "%LIB%" | findstr /l /i /c:"\\lib\\spectre\\" >nul
++goto :EOF
++
++:SpectreNeedsMSVC
++echo.
++echo *** --spectre is only supported with MSVC.
++exit /b 1
++
++:SpectreNotSupported
++echo.
++echo *** --spectre needs Visual Studio 2017 or later.
++exit /b 1
++
++:NoSpectreLibs
++echo.
++echo *** LIB does not include the Spectre-mitigated MSVC libraries.
++echo Check that they are installed for the target architecture and that
++echo LIB includes their path.
++exit /b 1
++
+ :NotConfig
+ echo.
+ echo *** This workspace is not configured.
+@@ -447,6 +482,7 @@
+ echo Usage: %0 [options] [gcc] OR [tcc]
+ echo Options:
+ echo.  --without-guile   Do not compile Guile support even if found
++echo.  --spectre         Build with Spectre mitigations (MSVC only)
+ echo.  --debug           Make a Debug build--default is Release
+ echo.  --x86             Make a 32bit binary--default is 64bit
+ echo.  --arm64           Make an ARM64 binary
+@@ -462,6 +498,7 @@
+ set GUILE=
+ set GUILECFLAGS=
+ set GUILELIBS=
++set SPECTRE=
+ set LINKOPTS=
+ set MAKE=
+ set NOGUILE=
+@@ -472,4 +509,5 @@
+ set PKGMSC=
+ set VSCOMPONENT=
+ set VSVARS=
++set VSVARSOPTS=
+ goto :EOF

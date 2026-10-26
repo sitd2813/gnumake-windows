@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: 0BSD
+
+UPSTREAM_VERSION ::= 4.4.1
+SOURCE_ARCHIVE_URL ::= https://ftp.gnu.org/gnu/make/make-$(UPSTREAM_VERSION).tar.gz
+SOURCE_ARCHIVE_SHA3_384 ::= 58e160757f38b0a18bd4a165eb7bc032d70eee0986daf8645037d5d959d749443d385bbccd98d905ce28e7a1754fb775

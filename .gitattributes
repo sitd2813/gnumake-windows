@@ -1,0 +1,12 @@
+* text=auto
+
+# Makefile
+makefile eol=lf
+*.mk     eol=lf
+
+# Patch files
+*.patch eol=lf
+patches/make-4.4.1-build_w32_arm64-1.patch              eol=crlf
+patches/make-4.4.1-build_w32_detect_build_tools.patch   eol=crlf
+patches/make-4.4.1-build_w32_preserve_exit_status.patch eol=crlf
+patches/make-4.4.1-build_w32_spectre-1.patch            eol=crlf

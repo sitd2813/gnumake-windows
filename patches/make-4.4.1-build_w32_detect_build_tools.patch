@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Extend the `%VSWHERE%` query to Visual Studio Build Tools:
+# - Search all products with `-products *`; the default includes only Community, Professional, and Enterprise
+# - Require the C++ toolset with `-requires` so `%VSWHERE%` cannot select an instance without it
+
+--- a/build_w32.bat
++++ b/build_w32.bat
+@@ -107,7 +107,7 @@
+ call :FindVswhere
+ if ERRORLEVEL 1 goto LegacyVS
+ 
+-for /f "tokens=* usebackq" %%i in (`"%VSWHERE%" -latest -property installationPath`) do (
++for /f "tokens=* usebackq" %%i in (`"%VSWHERE%" -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -latest -property installationPath`) do (
+     set InstallPath=%%i
+ )
+ set "VSVARS=%InstallPath%\VC\Auxiliary\Build\vcvarsall.bat"

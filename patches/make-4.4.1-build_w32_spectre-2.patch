@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Add `--spectre` to `build_w32.bat` (2/2)
+
+--- a/README.W32
++++ b/README.W32
+@@ -79,6 +79,10 @@
+ 
+     If you want an ARM64 version of GNU Make, add the --arm64 option.
+ 
++    If you want a Spectre-mitigated build of GNU Make, add the --spectre
++    option.  This requires Visual Studio 2017 or later, with the
++    Spectre-mitigated libraries installed for the target architecture.
++
+     If you want a Debug build of GNU Make, add the --debug option.  Output
+     will go into the .\WinDebug directory.
+ 

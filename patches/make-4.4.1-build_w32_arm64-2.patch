@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Add `--arm64` to `build_w32.bat` (2/2)
+# - x64 MSVC builds only worked because no header included `<stdint.h>`; on ARM64, `<winnt.h>` does
+
+--- a/README.W32
++++ b/README.W32
+@@ -77,6 +77,8 @@
+ 
+     If you want a 32bit version of GNU Make, add the --x86 option.
+ 
++    If you want an ARM64 version of GNU Make, add the --arm64 option.
++
+     If you want a Debug build of GNU Make, add the --debug option.  Output
+     will go into the .\WinDebug directory.
+ 
+--- a/src/config.h.W32
++++ b/src/config.h.W32
+@@ -281,7 +281,7 @@
+ /* #undef HAVE_SPAWN_H */
+ 
+ /* Define to 1 if you have the <stdint.h> header file. */
+-#ifdef __MINGW32__
++#if defined(__MINGW32__) || (defined(_MSC_VER) && _MSC_VER >= 1600)
+ #define HAVE_STDINT_H 1
+ #endif
+ 

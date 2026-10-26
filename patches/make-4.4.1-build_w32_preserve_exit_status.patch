@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+--- a/build_w32.bat
++++ b/build_w32.bat
+@@ -16,11 +16,11 @@
+ :: with this program.  If not, see <https://www.gnu.org/licenses/>.
+ 
+ setlocal
+-if not "%RECURSEME%"=="%~0" (
+-    set "RECURSEME=%~0"
+-    %ComSpec% /s /c ""%~0" %*"
+-    goto :EOF
+-)
++if "%RECURSEME%"=="%~0" goto Main
++set "RECURSEME=%~0"
++%ComSpec% /s /c ""%~0" %*"
++exit /b %ERRORLEVEL%
++:Main
+ 
+ call :Reset
+ 

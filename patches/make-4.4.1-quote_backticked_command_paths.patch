@@ -1,0 +1,244 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Origin: <https://cgit.git.savannah.gnu.org/cgit/make.git/commit/?id=ac2142e1a3f1ff6698197f4b53e6c0197dac1b54>
+# Backported to GNU Make 4.4.1 with the following changes:
+# - Remove diffstat, and `diff --git`, `index`, and email signature lines
+# - Renumber the hunks
+# - Adapt the `tests/test_driver.pl` hunk
+
+From ac2142e1a3f1ff6698197f4b53e6c0197dac1b54 Mon Sep 17 00:00:00 2001
+From: Paul Smith <psmith@gnu.org>
+Date: Tue, 26 Aug 2025 08:53:00 -0400
+Subject: * tests/*: Quote backticked command paths
+
+When using Perl's backticks make sure that the path to the command
+invoked is quoted.  On Windows, in particular, paths to commands such
+as diff, etc. may contain whitespace.
+---
+--- a/tests/run_make_tests.pl
++++ b/tests/run_make_tests.pl
+@@ -583,7 +583,7 @@ sub set_more_defaults
+     $make_path = 'make';
+   } else {
+     create_file('make.mk', 'all:;$(info $(MAKE))');
+-    my $mk = `$make_path -sf make.mk`;
++    my $mk = `"$make_path" -sf make.mk`;
+     unlink('make.mk');
+     $mk =~ s/\r?\n$//;
+     $mk or die "FATAL ERROR: Cannot determine the value of \$(MAKE)\n";
+@@ -593,18 +593,18 @@ sub set_more_defaults
+ 
+   # Ask make what shell to use
+   create_file('shell.mk', 'all:;$(info $(SHELL))');
+-  $sh_name = `$make_path -sf shell.mk`;
++  $sh_name = `"$make_path" -sf shell.mk`;
+   unlink('shell.mk');
+   $sh_name =~ s/\r?\n$//;
+   if (! $sh_name) {
+       print "Cannot determine shell\n";
+       $is_posix_sh = 0;
+   } else {
+-      my $o = `$sh_name -c ': do nothing' 2>&1`;
++      my $o = `"$sh_name" -c ': do nothing' 2>&1`;
+       $is_posix_sh = $? == 0 && $o eq '';
+   }
+ 
+-  $string = `$make_path -v`;
++  $string = `"$make_path" -v`;
+   $string =~ /^(GNU Make [^,\n]*)/ or die "$make_path is not GNU Make.  Version:\n$string";
+   $testee_version = "$1\n";
+ 
+@@ -612,7 +612,7 @@ sub set_more_defaults
+ 
+   my $redir = '2>&1';
+   $redir = '' if os_name eq 'VMS';
+-  $string = `$make_path -f null.mk $redir`;
++  $string = `"$make_path" -f null.mk $redir`;
+   if ($string =~ /(.*): \*\*\* No targets\.  Stop\./) {
+     $make_name = $1;
+   } else {
+@@ -659,7 +659,7 @@ sub set_more_defaults
+     $purify_errors = 0;
+   }
+ 
+-  $string = `$make_path -j 2 -f null.mk $redir`;
++  $string = `"$make_path" -j 2 -f null.mk $redir`;
+   if ($string =~ /not supported/) {
+     $parallel_jobs = 0;
+   }
+@@ -670,7 +670,7 @@ sub set_more_defaults
+   unlink('null.mk');
+ 
+   create_file('features.mk', 'all:;$(info $(.FEATURES))');
+-  %FEATURES = map { $_ => 1 } split /\s+/, `$make_path -sf features.mk`;
++  %FEATURES = map { $_ => 1 } split /\s+/, `"$make_path" -sf features.mk`;
+   print "$make_path FEATURES: @{[%FEATURES]}\n" if $verbose;
+   unlink('features.mk');
+ 
+@@ -680,7 +680,7 @@  sub set_more_defaults
+       $s .= "\$(info $_=\$($_))\n";
+   }
+   create_file('defvars.mk', $s);
+-  foreach (split "\n", `$make_path -sf defvars.mk`) {
++  foreach (split "\n", `"$make_path" -sf defvars.mk`) {
+       my @e = split /=/, $_, 2;
+       $DEFVARS{$e[0]} = $e[1];
+   }
+--- a/tests/scripts/features/archives
++++ b/tests/scripts/features/archives
+@@ -41,7 +41,7 @@ my $arvar = "AR=\"$ar\"";
+ # which forces all timestamps (among other things) to always be 0, defeating
+ # GNU Make's archive support.  See if ar supports the U option to disable it.
+ unlink('libxx.a');
+-$_ = `$ar ${arflags}U libxx.a a1.o $redir`;
++$_ = `"$ar" ${arflags}U libxx.a a1.o $redir`;
+ if ($? == 0) {
+     $arflags = "${arflags}U";
+     $arvar = "$arvar ARFLAGS=\"$arflags\"";
+@@ -49,15 +49,15 @@ if ($? == 0) {
+ 
+ # Some versions of ar print different things on creation.  Find out.
+ unlink('libxx.a');
+-my $created = `$ar $arflags libxx.a a1.o $redir`;
++my $created = `"$ar" $arflags libxx.a a1.o $redir`;
+ $created =~ s/a1\.o/#OBJECT#/g;
+ 
+ # Some versions of ar print different things on add.  Find out.
+-my $add = `$ar $arflags libxx.a a2.o $redir`;
++my $add = `"$ar" $arflags libxx.a a2.o $redir`;
+ $add =~ s/a2\.o/#OBJECT#/g;
+ 
+ # Some versions of ar print different things on replacement.  Find out.
+-my $repl = `$ar $arflags libxx.a a2.o $redir`;
++my $repl = `"$ar" $arflags libxx.a a2.o $redir`;
+ $repl =~ s/a2\.o/#OBJECT#/g;
+ 
+ unlink('libxx.a');
+@@ -244,9 +244,9 @@ if ($osname ne 'os390') {
+ # Find the output when creating an archive from multiple files
+ 
+ utouch(-10, 'a.o', 'b.o');
+-my $create2 = `$ar $arflags mylib.a a.o b.o $redir`;
++my $create2 = `"$ar" $arflags mylib.a a.o b.o $redir`;
+ touch('b.o');
+-my $add2 = `$ar $arflags mylib.a b.o $redir`;
++my $add2 = `"$ar" $arflags mylib.a b.o $redir`;
+ unlink('a.o', 'b.o', 'mylib.a');
+ 
+ # Some systems complain when compiling empty files
+--- a/tests/scripts/features/load
++++ b/tests/scripts/features/load
+@@ -55,7 +55,7 @@ close($F) or die "close: testload.c: $!\n";
+ my $cppflags = get_config('CPPFLAGS') . ($srcdir ? " -I$srcdir/src" : '');
+ my $cflags = get_config('CFLAGS') . ' -fPIC';
+ my $ldflags = get_config('LDFLAGS') . ' -shared';
+-my $sobuild = "$cc $cppflags $cflags $ldflags -o testload.so testload.c";
++my $sobuild = "\"$cc\" $cppflags $cflags $ldflags -o testload.so testload.c";
+ 
+ my $clog = `$sobuild 2>&1`;
+ if ($? != 0) {
+--- a/tests/scripts/features/loadapi
++++ b/tests/scripts/features/loadapi
+@@ -101,7 +101,7 @@ close($F) or die "close: testapi.c: $!\n";
+ my $cflags = get_config('CFLAGS');
+ my $cppflags = get_config('CPPFLAGS');
+ my $ldflags = get_config('LDFLAGS');
+-my $sobuild = "$cc ".($srcdir? "-I$srcdir/src":'')." $cppflags $cflags -shared -fPIC $ldflags -o testapi.so testapi.c";
++my $sobuild = "\"$cc\" ".($srcdir? "-I$srcdir/src":'')." $cppflags $cflags -shared -fPIC $ldflags -o testapi.so testapi.c";
+ 
+ my $clog = `$sobuild 2>&1`;
+ if ($? != 0) {
+--- a/tests/scripts/functions/realpath
++++ b/tests/scripts/functions/realpath
+@@ -24,7 +24,7 @@ all: ; @:
+ 
+ # Find the realpath to the root of the partition
+ create_file('root.mk', 'all:;$(info $(realpath /))');
+-my $root = `$make_path -sf root.mk`;
++my $root = `"$make_path" -sf root.mk`;
+ unlink('root.mk');
+ $root =~ s/\r?\n//g;
+ 
+--- a/tests/scripts/options/dash-I
++++ b/tests/scripts/options/dash-I
+@@ -83,7 +83,7 @@ rmdir('idir2');
+ # won't work if none of the default directories contain any files :-/
+ 
+ create_file('defaultdirs.mk', "\$(info \$(.INCLUDE_DIRS))\nall:;\@:\n");
+-my $cmd = subst_make_string("#MAKEPATH# -f defaultdirs.mk");
++my $cmd = subst_make_string('"#MAKEPATH#" -f defaultdirs.mk');
+ my @dirs = `$cmd`;
+ my $dirs = $dirs[0];
+ $dirs =~ s/\r?\n//g;
+--- a/tests/scripts/targets/ONESHELL
++++ b/tests/scripts/targets/ONESHELL
+@@ -9,7 +9,7 @@ my $multi_ok = 0;
+ if ($port_type ne 'W32') {
+     # Some shells (*shakes fist at Solaris*) cannot handle multiple flags in
+     # separate arguments.
+-    my $t = `$sh_name -e -c true 2>/dev/null`;
++    my $t = `"$sh_name" -e -c true 2>/dev/null`;
+     $multi_ok = $? == 0;
+ }
+ 
+--- a/tests/scripts/targets/POSIX
++++ b/tests/scripts/targets/POSIX
+@@ -60,7 +60,7 @@ all: .SHELLFLAGS = -ec
+ # Different versions of sh generate different output for -x so check it
+ my $script = subst_make_string('#HELPER# -q fail 1; true');
+ my $flags = '-xc';
+-my $out = `$sh_name $flags '$script' 2>&1`;
++my $out = `"$sh_name" $flags '$script' 2>&1`;
+ 
+ run_make_test(qq!
+ .SHELLFLAGS = $flags
+--- a/tests/scripts/variables/INCLUDE_DIRS
++++ b/tests/scripts/variables/INCLUDE_DIRS
+@@ -42,7 +42,7 @@ all:;@:
+ 
+ # Find the default .INCLUDE_DIRS
+ create_file('defaultdirs.mk', "\$(info \$(.INCLUDE_DIRS))\nall:;\@:\n");
+-my $cmd = subst_make_string("#MAKEPATH# -f defaultdirs.mk");
++my $cmd = subst_make_string('"#MAKEPATH#" -f defaultdirs.mk');
+ my @dirs = `$cmd`;
+ my $dirs = $dirs[0];
+ $dirs =~ s/\r?\n//g;
+--- a/tests/scripts/variables/SHELL
++++ b/tests/scripts/variables/SHELL
+@@ -70,7 +70,7 @@ one two:;@echo "$@: $(SHELL) $$SHELL"
+ # printed by the shell in -x mode has a trailing space!
+ my $script = 'true; true';
+ my $flags = '-xc';
+-my $out = `$sh_name $flags '$script' 2>&1`;
++my $out = `"$sh_name" $flags '$script' 2>&1`;
+ 
+ run_make_test(qq!
+ .SHELLFLAGS = $flags
+@@ -82,7 +82,7 @@ all: ; \@$script
+ 
+ # Some shells (*shakes fist at Solaris*) cannot handle multiple flags in
+ # separate arguments.
+-my $t = `$sh_name -e -c true 2>/dev/null`;
++my $t = `"$sh_name" -e -c true 2>/dev/null`;
+ my $multi_ok = $? == 0;
+ 
+ if ($multi_ok) {
+@@ -96,7 +96,7 @@ all: ; \@$script
+ 
+ $script = subst_make_string('true; #HELPER# -q fail 1; true');
+ $flags = '-xec';
+-$out = `$sh_name $flags '$script' 2>&1`;
++$out = `"$sh_name" $flags '$script' 2>&1`;
+ 
+ run_make_test(qq!
+ .SHELLFLAGS = $flags
+--- a/tests/test_driver.pl
++++ b/tests/test_driver.pl
+@@ -1023,7 +1023,7 @@ sub compare_output
+     my $base = get_basefile();
+     if ($diff_name) {
+         &run_command_with_output(get_difffile(),
+-                                 "$diff_name -c $base $logfile");
++                                 "\"$diff_name\" -c $base $logfile");
+     } else {
+         create_file(get_difffile(),
+                     "Log file $logfile differs from base file $base\n");

@@ -1,0 +1,13 @@
+<!-- Release title
+# GNU Make for Windows <VERSION>
+-->
+
+Unofficial builds of [GNU Make](https://www.gnu.org/software/make/) <UPSTREAM-VERSION> for Windows, compiled without GNU Guile support
+
+| Category         | Minimum requirement                       |
+| ---------------- | ----------------------------------------- |
+| Operating system | Windows 10                                |
+| CPU (AMD64)      | AVX2 (e.g., Intel Haswell, AMD Excavator) |
+| CPU (AArch64)    | Armv8.2-A                                 |
+
+The release executables are licensed under the [GNU General Public License, version 3](https://www.gnu.org/licenses/gpl-3.0.html) or later. Their corresponding source code consists of the [upstream source code](<SOURCE-ARCHIVE-URL>) and this repository's [patches and build scripts](<REPOSITORY-URL>/tree/v<VERSION>).

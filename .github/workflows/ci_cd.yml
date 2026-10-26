@@ -1,0 +1,117 @@
+name: CI/CD
+run-name: Build and release `${{ github.ref_name }}`
+
+on:
+  push:
+    tags:
+      - 'v*.*.*\+sitd2813.*'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Check tag against release version
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            config-upstream.mk
+            config.mk
+            makefile
+          sparse-checkout-cone-mode: false
+
+      - run: |
+          version="$(make -s -f makefile -f - _print <<-'EOF'
+          	.PHONY: _print
+          	_print: ; printf '%s\n' '$(VERSION)'
+          EOF
+          )"
+          [ "${GITHUB_REF_NAME#v}" = "$version" ]
+
+  build:
+    needs: validate
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            os: windows-2025-vs2026
+            busybox_url: https://frippery.org/files/busybox/busybox-w64u-FRP-6075-g169694ebd.exe
+            busybox_sha256: 6e263d154d8548d1eb936f65d1d8312c80df31c45974e48d6335e4dcc0f4f34c
+          - arch: aarch64
+            os: windows-11-vs2026-arm
+            busybox_url: https://frippery.org/files/busybox/busybox-w64a-FRP-6075-g169694ebd.exe
+            busybox_sha256: e67f873d19d58c535cc9f0c4965ffd622e19b7bab87e3da89cb2185fb54464d7
+    name: Build and test (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Install BusyBox for Windows
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          curl.exe -fsSL --retry 3 -o "$env:RUNNER_TEMP\busybox.exe" ${{ matrix.busybox_url }}
+          if ((Get-FileHash -Algorithm SHA256 "$env:RUNNER_TEMP\busybox.exe").Hash -ne '${{ matrix.busybox_sha256 }}') { throw 'BusyBox SHA-256 mismatch' }
+
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - run: |
+          $env:PATH = "C:\Strawberry\perl\bin;C:\Program Files\Git\usr\bin;$env:PATH"
+          & "$env:RUNNER_TEMP\busybox.exe" make check-windows-${{ matrix.arch }}
+
+      - run: |
+          & "$env:RUNNER_TEMP\busybox.exe" make windows-${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gnumake-${{ matrix.arch }}.exe
+          path: build/gnumake-*-${{ matrix.arch }}.exe
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub release
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+    needs: build
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            config-upstream.mk
+            config.mk
+            makefile
+            RELEASE.md.in
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: build
+          pattern: gnumake-*.exe
+          merge-multiple: true
+
+      - run: |
+          for f in build/gnumake-*.exe; do
+          	mv "$f" "gnumake-${f##*-}"
+          done
+
+      - uses: actions/attest@v4
+        with:
+          subject-path: gnumake-*.exe
+
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          make build/RELEASE.md
+          title="$(sed -En 's/# (.+)/\1/p' build/RELEASE.md | head -n 1)"
+          gh release create "$GITHUB_REF_NAME" --repo="$GITHUB_REPOSITORY" --verify-tag \
+          	--title="$title" --notes-file=build/RELEASE.md \
+          	gnumake-*.exe

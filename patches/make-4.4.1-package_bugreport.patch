@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+--- a/src/main.c
++++ b/src/main.c
+@@ -914,7 +914,7 @@
+     fprintf (usageto, _("\nThis program built for %s (%s)\n"),
+              make_host, remote_description);
+ 
+-  fprintf (usageto, _("Report bugs to <bug-make@gnu.org>\n"));
++  fprintf (usageto, _("Report bugs to <%s>\n"), PACKAGE_BUGREPORT);
+ 
+   die (bad ? MAKE_FAILURE : MAKE_SUCCESS);
+ }

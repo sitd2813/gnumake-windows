@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Add `--arm64` to `build_w32.bat` (1/2)
+
+--- a/build_w32.bat
++++ b/build_w32.bat
+@@ -51,6 +51,7 @@
+ if "%1" == "--debug" goto SetDebug
+ if "%1" == "--without-guile" goto NoGuile
+ if "%1" == "--x86" goto Set32Bit
++if "%1" == "--arm64" goto SetArm64
+ if "%1" == "gcc" goto SetCC
+ if "%1" == "tcc" goto SetTCC
+ if "%1" == "" goto DoneSW
+@@ -79,6 +80,14 @@
+ shift
+ goto ParseSW
+ 
++:SetArm64
++set ARCH=x64_arm64
++if /i "%PROCESSOR_ARCHITECTURE%" == "ARM64" set ARCH=arm64
++if /i "%PROCESSOR_ARCHITEW6432%" == "ARM64" set ARCH=arm64
++echo - Building ARM64 GNU Make
++shift
++goto ParseSW
++
+ :SetCC
+ set COMPILER=gcc
+ set O=o
+@@ -107,7 +116,11 @@
+ call :FindVswhere
+ if ERRORLEVEL 1 goto LegacyVS
+ 
++set VSCOMPONENT=Microsoft.VisualStudio.Component.VC.Tools.x86.x64
++if "%ARCH%" == "x64_arm64" set VSCOMPONENT=Microsoft.VisualStudio.Component.VC.Tools.ARM64
++if "%ARCH%" == "arm64" set VSCOMPONENT=Microsoft.VisualStudio.Component.VC.Tools.ARM64
++
+-for /f "tokens=* usebackq" %%i in (`"%VSWHERE%" -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -latest -property installationPath`) do (
++for /f "tokens=* usebackq" %%i in (`"%VSWHERE%" -products * -requires %VSCOMPONENT% -latest -property installationPath`) do (
+     set InstallPath=%%i
+ )
+ set "VSVARS=%InstallPath%\VC\Auxiliary\Build\vcvarsall.bat"
+@@ -434,6 +447,7 @@
+ echo.  --without-guile   Do not compile Guile support even if found
+ echo.  --debug           Make a Debug build--default is Release
+ echo.  --x86             Make a 32bit binary--default is 64bit
++echo.  --arm64           Make an ARM64 binary
+ echo.  --help            Display these instructions and exit
+ echo.
+ echo. "gcc" means compile with GCC, "tcc" means compile with Tiny C's TCC
+@@ -454,5 +468,6 @@
+ set OUTDIR=
+ set LNKOUT=
+ set PKGMSC=
++set VSCOMPONENT=
+ set VSVARS=
+ goto :EOF
