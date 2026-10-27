@@ -13,4 +13,4 @@ gh attestation verify --repo=sitd2813/gnumake-windows <EXE>
 
 ## License
 
-The patches in `patches/` are licensed under the [GNU General Public License, version 3](https://www.gnu.org/licenses/gpl-3.0.html) or later. All other source files in this repository are licensed under the [BSD Zero-Clause License](LICENSE).
+The patches in `patches/` are licensed under the [GNU General Public License, version 3](https://www.gnu.org/licenses/gpl-3.0.html) or later. All other source files in this repository are licensed under the [BSD Zero Clause License](LICENSE).
